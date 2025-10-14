@@ -6,15 +6,15 @@ Selects the best classifier by macro-F1 and saves artifacts:
 - confusion_matrix.png
 - feature_ranking.png (if supported by the model)
 - metrics.json
-Requires dataset.csv with:
-  blink_rate_bpm, incomplete_blink_ratio, avg_ibi_sec, redness_index, risk_label
+
+Requires dataset.csv with columns:
+  blink_rate_bpm, incomplete_blink_ratio, avg_ibi_sec, redness_index, osdi_score, risk_label
 """
 
 import argparse, json, warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.pipeline import Pipeline
@@ -26,7 +26,14 @@ from sklearn.svm import SVC
 from sklearn.calibration import CalibratedClassifierCV
 import joblib
 
-FEATURE_COLS = ["blink_rate_bpm","incomplete_blink_ratio","avg_ibi_sec","redness_index"]
+# ===== Use 5 features: 4 video + OSDI =====
+FEATURE_COLS = [
+    "blink_rate_bpm",
+    "incomplete_blink_ratio",
+    "avg_ibi_sec",
+    "redness_index",
+    "osdi_score",
+]
 TARGET_COL = "risk_label"
 
 def plot_confusion(cm, labels, out_path="confusion_matrix.png"):
@@ -81,7 +88,7 @@ def build_candidates(random_state=42):
 
     hgb = HistGradientBoostingClassifier(random_state=random_state)
     hgb_grid = {"max_depth":[None,6,10], "learning_rate":[0.05,0.1], "max_iter":[300,500]}
-    cands.append(("hgb", hgb, gb_grid))
+    cands.append(("hgb", hgb, hgb_grid))  # <-- fixed to use hgb_grid
     return cands
 
 def main(dataset_path: str):
